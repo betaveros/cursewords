@@ -55,6 +55,7 @@ class Grid:
         self.grid_x = grid_x
         self.grid_y = grid_y
         self.term = term
+        self.base_style = term.dim
 
         self.notification_area = (term.height-2, self.grid_x)
 
@@ -140,19 +141,19 @@ class Grid:
         divider_row = self.get_divider_row()
 
         print(self.term.move(self.grid_y, self.grid_x)
-                + self.term.dim(top_row))
+                + self.base_style(top_row))
         for index, y_val in enumerate(
                                 range(self.grid_y + 1,
                                       self.grid_y + self.row_count * 2),
                                 1):
             if index % 2 == 0:
                 print(self.term.move(y_val, self.grid_x) +
-                      self.term.dim(divider_row))
+                      self.base_style(divider_row))
             else:
                 print(self.term.move(y_val, self.grid_x) +
-                      self.term.dim(middle_row))
+                      self.base_style(middle_row))
         print(self.term.move(self.grid_y + self.row_count * 2, self.grid_x)
-              + self.term.dim(bottom_row))
+              + self.base_style(bottom_row))
 
     def number(self):
         numbered_squares = []
@@ -175,8 +176,15 @@ class Grid:
             if cell.is_letter():
                 self.draw_cell(position)
             elif cell.is_block():
+                i, j = position
+                if (i, j - 1) in self.cells and self.cells[(i, j - 1)].is_block():
+                    print(self.term.move(y_coord - 1, x_coord - 1) +
+                            self.base_style(chars.squareblock))
                 print(self.term.move(y_coord, x_coord - 1) +
-                        self.term.dim(chars.squareblock))
+                        self.base_style(chars.squareblock))
+                if (i - 1, j) in self.cells and self.cells[(i - 1, j)].is_block():
+                    print(self.term.move(y_coord, x_coord - 4) +
+                            self.base_style(chars.fullblock * 4))
 
             if cell.number:
                 small = str(cell.number).translate(chars.small_nums)
@@ -299,7 +307,7 @@ class Grid:
         if cell.corrected:
             markup = self.term.red(".")
         if cell.revealed:
-            markup = self.term.red(":")
+            markup = self.term.red("‡")
 
         return value, markup
 
@@ -829,6 +837,11 @@ def main():
                             term.clear_eol)
                 timer.show_time()
                 timer.active = False
+                grid.base_style = grid.term.green
+                grid.draw()
+                grid.number()
+                grid.fill()
+                grid.draw_cursor_cell(cursor.position)
 
             blank_cells_remaining = any(grid.cells.get(pos).is_blankish()
                                         for pos in grid.cells)
